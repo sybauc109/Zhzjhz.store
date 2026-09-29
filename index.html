@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>iOS Mic Control & Bug Panel v2.7 - Clear Voice</title>
+    <style>
+        :root {
+            --primary-color: #00ffcc;
+            --bg-color: #0d1117;
+            --card-bg: #161b22;
+            --text-color: #c9d1d9;
+            --border-color: #30363d;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            padding: 15px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 480px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        h1 {
+            font-size: 18px;
+            text-align: center;
+            color: var(--primary-color);
+            margin-bottom: 5px;
+            text-shadow: 0 0 10px rgba(0, 255, 204, 0.3);
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 15px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+        }
+
+        .card-title {
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 12px;
+            color: var(--primary-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        /* 1. Tùy chỉnh giao diện */
+        .theme-selector {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        .theme-btn {
+            flex: 1;
+            padding: 8px;
+            border: none;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .btn-cyan { background: #00ffcc; color: #000; }
+        .btn-red { background: #ff3333; color: #fff; }
+        .btn-purple { background: #b000ff; color: #fff; }
+
+        /* Các nút chức năng Bug & Mic */
+        .grid-controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .action-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+        }
+
+        .action-btn.active {
+            background: var(--primary-color);
+            color: #000;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 15px var(--primary-color);
+        }
+
+        /* Nút Bắt đầu xả & Dừng xả chính lớn */
+        .stream-control-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 5px;
+        }
+
+        .main-btn {
+            padding: 14px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            border: 1px solid var(--border-color);
+            transition: all 0.2s;
+            text-align: center;
+        }
+
+        #btnStartStream {
+            background-color: #238636;
+            color: #ffffff;
+            border-color: #2ea043;
+        }
+
+        #btnStopStream {
+            background-color: #da3633;
+            color: #ffffff;
+            border-color: #f85149;
+        }
+
+        .main-btn:disabled, .action-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+            box-shadow: none !important;
+        }
+
+        /* Thanh trượt (Slider) */
+        .slider-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-top: 5px;
+        }
+
+        .slider-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            background: var(--border-color);
+            border-radius: 3px;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: var(--primary-color);
+            cursor: pointer;
+            box-shadow: 0 0 5px var(--primary-color);
+        }
+
+        /* Mục nhập file nhạc nền ở dưới cùng */
+        .file-upload-box {
+            border: 2px dashed var(--border-color);
+            padding: 12px;
+            border-radius: 8px;
+            text-align: center;
+            position: relative;
+            cursor: pointer;
+            background: rgba(0,0,0,0.2);
+        }
+
+        .file-upload-box input[type="file"] {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        .file-name {
+            font-size: 11px;
+            color: #8b949e;
+            margin-top: 4px;
+            word-break: break-all;
+        }
+
+        .status-bar {
+            text-align: center;
+            font-size: 11px;
+            color: #8b949e;
+            margin-top: -5px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>iOS MIC & APP BUGGER v2.7</h1>
+    <div class="status-bar" id="statusBarText">Trạng thái: Sẵn sàng (Chưa xả Mic)</div>
+
+    <!-- 1. Ở TRÊN CÙNG: CHỈNH GIAO DIỆN -->
+    <div class="card">
+        <div class="card-title">1. Tùy Chỉnh Giao Diện</div>
+        <div class="theme-selector">
+            <button class="theme-btn btn-cyan" onclick="setTheme('#00ffcc', '#161b22')">Cyber Cyan</button>
+            <button class="theme-btn btn-red" onclick="setTheme('#ff3333', '#1a0f0f')">Blood Red</button>
+            <button class="theme-btn btn-purple" onclick="setTheme('#b000ff', '#140d1a')">Neon Purple</button>
+        </div>
+    </div>
+
+    <!-- KHU VỰC ĐIỀU KHIỂN BẮT ĐẦU / DỪNG XẢ -->
+    <div class="card" style="border-color: var(--primary-color);">
+        <div class="card-title">Điều Khiển Hoạt Động Xả Mic</div>
+        <div class="stream-control-grid">
+            <button class="main-btn" id="btnStartStream" onclick="startStreaming()">🟢 Bắt Đầu Xả</button>
+            <button class="main-btn" id="btnStopStream" onclick="stopStreaming()" disabled>🔴 Dừng Xả</button>
+        </div>
+    </div>
+
+    <!-- 2. KHU VỰC BUG APP & CẤU HÌNH MIC -->
+    <div class="card">
+        <div class="card-title">2. Cấu Hình Bug & Xử Lý Âm Thanh (Rõ Giọng)</div>
+        <div class="grid-controls">
+            <button class="action-btn" id="btnBugApp" onclick="toggleFeature('BugApp')">🔓 Bug Giới Hạn App</button>
+            <button class="action-btn active" id="btnSuperMic" onclick="toggleFeature('SuperMic')">🎙️ Mic Siêu To (Boost)</button>
+            <button class="action-btn" id="btnDeMic" onclick="toggleFeature('DeMic')">💥 Đè Mic (Overdrive)</button>
+            <button class="action-btn" id="btnReverb" onclick="toggleFeature('Reverb')">🎛️ Hiệu Ứng Vang (Echo)</button>
+        </div>
+    </div>
+
+    <!-- 3. THANH CHỈNH ĐỘ ỒN & ĐỘ RÕ GIỌNG -->
+    <div class="card">
+        <div class="card-title">3. Bộ Lọc Tạp Âm & Tăng Giọng Nói</div>
+        <div class="slider-group">
+            <div class="slider-label">
+                <span>Ngưỡng Lọc Ồn (Noise Gate)</span>
+                <span id="noiseVal">50%</span>
+            </div>
+            <input type="range" id="noiseSlider" min="0" max="100" value="50" oninput="updateSlider('noiseVal', this.value + '%')">
+        </div>
+        <div class="slider-group" style="margin-top: 12px;">
+            <div class="slider-label">
+                <span>Độ To Giọng Nói (Mic Gain Boost)</span>
+                <span id="gainVal">350%</span>
+            </div>
+            <input type="range" id="gainSlider" min="100" max="1000" value="350" oninput="updateGain(this.value)">
+        </div>
+    </div>
+
+    <!-- 4. Ở DƯỚI CÙNG: NHẬP FILE MP3/WAV LÀM NHẠC NỀN KHI BẬT MIC -->
+    <div class="card">
+        <div class="card-title">4. Nhạc Nền Phát Kèm Khi Bật Mic (MP3/WAV)</div>
+        <div class="file-upload-box">
+            <span>📁 Nhấn để chọn file nhạc nền (.mp3 / .wav)</span>
+            <input type="file" id="bgMusicInput" accept="audio/mp3, audio/wav" onchange="loadBgMusic(event)">
+        </div>
+        <div class="file-name" id="fileNameDisplay">Chưa có file nào được chọn</div>
+        
+        <div class="slider-group" style="margin-top: 10px;">
+            <div class="slider-label">
+                <span>Âm lượng nhạc nền (Giữ nhỏ để nổi giọng)</span>
+                <span id="musicVolVal">20%</span>
+            </div>
+            <input type="range" id="musicVolSlider" min="0" max="100" value="20" oninput="updateMusicVolume(this.value)">
+        </div>
+    </div>
+</div>
+
+<script>
+    let audioCtx = null;
+    let micStream = null;
+    let micSource = null;
+    let micGainNode = null;
+    let bgAudioNode = null;
+    let bgGainNode = null;
+    let selectedAudioBuffer = null;
+    let audioFileObj = null;
+
+    // Đổi màu giao diện
+    function setTheme(primaryColor, cardBgColor) {
+        document.documentElement.style.setProperty('--primary-color', primaryColor);
+        document.documentElement.style.setProperty('--card-bg', cardBgColor);
+    }
+
+    // Bật/tắt các tùy chọn phụ
+    function toggleFeature(id) {
+        const btn = document.getElementById('btn' + id);
+        btn.classList.toggle('active');
+    }
+
+    // Cập nhật nhãn thanh trượt
+    function updateSlider(elementId, value) {
+        document.getElementById(elementId).innerText = value;
+    }
+
+    // Cập nhật mức độ Gain giọng nói theo thời gian thực
+    function updateGain(val) {
+        document.getElementById('gainVal').innerText = val + '%';
+        if (micGainNode && audioCtx) {
+            micGainNode.gain.setValueAtTime(val / 100 * 2.5, audioCtx.currentTime);
+        }
+    }
+
+    // Cập nhật âm lượng nhạc nền để không đè giọng
+    function updateMusicVolume(val) {
+        document.getElementById('musicVolVal').innerText = val + '%';
+        if (bgGainNode && audioCtx) {
+            bgGainNode.gain.setValueAtTime(val / 100 * 0.4, audioCtx.currentTime); // Khống chế tối đa âm nhạc nền
+        }
+    }
+
+    // Xử lý tải file nhạc nền MP3/WAV vào bộ nhớ AudioBuffer
+    async function loadBgMusic(event) {
+        const file = event.target.files[0];
+        const display = document.getElementById('fileNameDisplay');
+        if (file) {
+            audioFileObj = file;
+            display.innerText = "Đã chọn: " + file.name;
+            
+            try {
+                const arrayBuffer = await file.arrayBuffer();
+                // Tạm khởi tạo AudioContext nếu chưa có để giải mã file
+                if (!audioCtx) {
+                    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                selectedAudioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+                console.log("Đã giải mã xong nhạc nền, sẵn sàng phát trộn!");
+            } catch (err) {
+                console.error("Lỗi đọc file nhạc:", err);
+                alert("Không thể đọc định dạng file này!");
+            }
+        } else {
+            display.innerText = "Chưa có file nào được chọn";
+            selectedAudioBuffer = null;
+        }
+    }
+
+    // BẮT ĐẦU XẢ MIC (Trộn giọng nói + Nhạc nền sạch sẽ)
+    async function startStreaming() {
+        const statusText = document.getElementById('statusBarText');
+        const startBtn = document.getElementById('btnStartStream');
+        const stopBtn = document.getElementById('btnStopStream');
+
+        try {
+            // Khởi tạo AudioContext
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            if (audioCtx.state === 'suspended') {
+                await audioCtx.resume();
+            }
+
+            // Lấy quyền Micro với bộ lọc loại bỏ tiếng ồn tự động của thiết bị
+            micStream = await navigator.mediaDevices.getUserMedia({ 
+                audio: { 
+                    echoCancellation: true, 
+                    noiseSuppression: true, 
+                    autoGainControl: false 
+                }, 
+                video: false 
+            });
+
+            // Tạo các đường âm thanh (Nodes)
+            micSource = audioCtx.createMediaStreamSource(micStream);
+            micGainNode = audioCtx.createGain();
+
+            // Đặt mức khuếch đại giọng nói dựa trên thanh trượt hiện tại
+            const currentGainVal = document.getElementById('gainSlider').value / 100 * 2.5;
+            micGainNode.gain.setValueAtTime(currentGainVal, audioCtx.currentTime);
+
+            // Kết nối luồng mic qua mạch tăng âm -> ra hệ thống loa/đầu ra ứng dụng
+            micSource.connect(micGainNode);
+            micGainNode.connect(audioCtx.destination);
+
+            // Nếu có nhạc nền, tiến hành trộn song song qua đường riêng
+            if (selectedAudioBuffer) {
+                bgAudioNode = audioCtx.createBufferSource();
+                bgAudioNode.buffer = selectedAudioBuffer;
+                bgAudioNode.loop = true;
+
+                bgGainNode = audioCtx.createGain();
+                const currentMusicVol = document.getElementById('musicVolSlider').value / 100 * 0.4;
+                bgGainNode.gain.setValueAtTime(currentMusicVol, audioCtx.currentTime);
+
+                bgAudioNode.connect(bgGainNode);
+                bgGainNode.connect(audioCtx.destination);
+                bgAudioNode.start(0);
+            }
+
+            statusText.innerText = "Trạng thái: Đang Xả Mic (Giọng nói rõ ràng + Nhạc nền)";
+            statusText.style.color = "var(--primary-color)";
+
+            startBtn.disabled = true;
+            stopBtn.disabled = false;
+
+        } catch (error) {
+            alert("Không thể truy cập Microphone hoặc khởi động Audio Engine! Hãy cấp quyền trong trình duyệt.");
+            console.error(error);
+        }
+    }
+
+    // DỪNG XẢ MIC
+    function stopStreaming() {
+        const statusText = document.getElementById('statusBarText');
+        const startBtn = document.getElementById('btnStartStream');
+        const stopBtn = document.getElementById('btnStopStream');
+
+        // Dừng micro
+        if (micStream) {
+            micStream.getTracks().forEach(track => track.stop());
+            micStream = null;
+        }
+
+        // Dừng nhạc nền đang phát từ bộ đệm
+        if (bgAudioNode) {
+            try { bgAudioNode.stop(); } catch(e) {}
+            bgAudioNode = null;
+        }
+
+        // Đóng bộ xử lý âm thanh
+        if (audioCtx && audioCtx.state !== 'closed') {
+            audioCtx.close();
+            audioCtx = null;
+        }
+
+        statusText.innerText = "Trạng thái: Đã dừng (Chưa xả Mic)";
+        statusText.style.color = "#8b949e";
+
+        startBtn.disabled = false;
+        stopBtn.disabled = true;
+    }
+</script>
+
+</body>
+</html>
